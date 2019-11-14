@@ -59,13 +59,6 @@ public class FlatViewServiceTest {
         Integer flatId = 45;
         LocalDateTime start = LocalDateTime.now().plusDays(5);
 
-//        Result result = flatViewService.tryReserve(tenant2Id, flatId, start);
-
-//        assertThat(result, equalTo(Ok));
-//        verify(notificationService, never()).notifyTenant(any(), any(), any());
-//        verify(notificationService).add("one");
-
-//        flatViewService.cancel(tenant2Id, flatId, start);
         Result result;
         result = flatViewService.rent(flatId, tenant1Id);
         assertThat(result, equalTo(Ok));

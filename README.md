@@ -8,4 +8,4 @@ Simple flat viewing scheduler.
 
 ## How to run
 
-`./gradlew run`
+`./gradlew build` or `./gradlew run`

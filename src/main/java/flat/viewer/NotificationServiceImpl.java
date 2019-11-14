@@ -22,13 +22,16 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void unsubscribeNew(Integer flatId, ViewSlot viewSlot) {
-        flatViewToNewTenant.remove(new FlatViewSlot(flatId, viewSlot.getStartTime()), viewSlot.getNewTenantId());
+        flatViewToNewTenant.remove(new FlatViewSlot(flatId, viewSlot.getStartTime()));
     }
 
     @Override
     public void notifyNew(Integer flatId, ViewSlot viewSlot) {
-        notifyTenant(viewSlot.getNewTenantId(), viewSlot.getStartTime(), viewSlot.getState());
-        unsubscribeNew(flatId, viewSlot);
+        Integer newTenantId = flatViewToNewTenant.get(new FlatViewSlot(flatId, viewSlot.getStartTime()));
+        if (newTenantId != null) {
+            notifyTenant(newTenantId, viewSlot.getStartTime(), viewSlot.getState());
+            unsubscribeNew(flatId, viewSlot);
+        }
 
 //        Integer newTenantId = flatViewToNewTenant.remove(new FlatViewSlot(flatId, viewSlot.getStartTime()));
 //        if (newTenantId != null) {
@@ -71,10 +74,5 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void notifyTenant(Integer tenantId, LocalDateTime startTime, SlotState state) {
         // stub
-    }
-
-    @Override
-    public void notifyRemoveCurrent(Integer flatId, ViewSlot viewSlot) {
-
     }
 }

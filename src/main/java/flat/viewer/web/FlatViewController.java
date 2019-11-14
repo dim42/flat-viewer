@@ -35,6 +35,7 @@ public class FlatViewController extends AbstractVerticle {
     public void start() {
 //        AuctionRepository repository = new AuctionRepository(vertx.sharedData());
 //        FVValidator validator = new FVValidator(repository);
+//        SharedData sharedData = vertx.sharedData();
         NotificationService notificationService = new NotificationServiceImpl();
         FlatViewService flatViewService = new FlatViewService(notificationService);
         //        FVValidator validator = new FVValidator();
@@ -65,8 +66,14 @@ public class FlatViewController extends AbstractVerticle {
 //                // Got the lock!
 //                Lock lock = res.result();
 //
-//                LocalMap<String, String> map1 = sharedData.getClusterWideMap("mymap1");
-//                
+//                LocalMap<String, String> map1 = sharedData.getClusterWideMap("mymap1", res2 -> {
+//                    if (res2.succeeded()) {
+//                        AsyncMap<String, String> map = res2.result();
+//                    } else {
+//                        // Something went wrong!
+//                    }
+//                });
+//
 //            } else {
 //                // Failed to get lock
 //            }

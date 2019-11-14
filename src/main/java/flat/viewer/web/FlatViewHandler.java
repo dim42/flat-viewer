@@ -14,17 +14,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
 
 import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_JSON;
 import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 import static java.time.temporal.ChronoUnit.MINUTES;
 
-//import io.vertx.rxjava.ext.web.RoutingContext;
-
 public class FlatViewHandler {
     private static final Logger log = LoggerFactory.getLogger(FlatViewHandler.class);
 
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -37,35 +35,36 @@ public class FlatViewHandler {
     }
 
     public void handleRent(RoutingContext context) {
-        JsonObject json;
+        processAndRespond(context, this::callRent);
+    }
+
+    private void processAndRespond(RoutingContext context, Function<JsonObject, Result> function) {
         try {
             JsonObject body = context.getBodyAsJson();
-            Integer tenantId = body.getInteger("t_id");
-            Integer flatId = body.getInteger("f_id");
-            Result result = flatViewService.rent(flatId, tenantId);
-            json = new JsonObject().put("result", result);
+            Result result = function.apply(body);
+            JsonObject json = new JsonObject().put("result", result);
             context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
         } catch (Exception e) {
             log.error("Request error", e);
-            json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
+            JsonObject json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
             context.response().setStatusCode(422).end(json.encode());
         }
     }
 
+    private Result callRent(JsonObject body) {
+        Integer tenantId = body.getInteger("t_id");
+        Integer flatId = body.getInteger("f_id");
+        return flatViewService.rent(flatId, tenantId);
+    }
+
     public void handleReserve(RoutingContext context) {
-        JsonObject json;
-        try {
-            JsonObject body = context.getBodyAsJson();
-            Integer tenantId = body.getInteger("t_id");
-            Integer flatId = body.getInteger("f_id");
-            Result result = flatViewService.tryReserve(flatId, getDateTime(body), tenantId);
-            json = new JsonObject().put("result", result);
-            context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
-        } catch (Exception e) {
-            log.error("Request error", e);
-            json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
-            context.response().setStatusCode(422).end(json.encode());
-        }
+        processAndRespond(context, this::callReserve);
+    }
+
+    private Result callReserve(JsonObject body) {
+        Integer tenantId = body.getInteger("t_id");
+        Integer flatId = body.getInteger("f_id");
+        return flatViewService.tryReserve(flatId, getDateTime(body), tenantId);
     }
 
     private LocalDateTime getDateTime(JsonObject body) {
@@ -76,11 +75,6 @@ public class FlatViewHandler {
         return LocalDateTime.of(date, start);
     }
 
-//            String startParam = body.getString("start");
-//            LocalDateTime st = LocalDateTime.parse(startParam, DATE_TIME_FORMATTER);
-//            String endParam = body.getString("end");
-//            LocalDateTime end = LocalDateTime.parse(endParam, DATE_TIME_FORMATTER);
-
     private void validate(LocalTime start, LocalTime end) {
         if (!timeSlots.contains(new SimpleEntry<>(start, end))) {
             throw new IllegalArgumentException("Wrong slot");
@@ -88,57 +82,33 @@ public class FlatViewHandler {
     }
 
     public void handleCancel(RoutingContext context) {
+        processAndRespond(context, this::callCancel);
+    }
+
+    private Result callCancel(JsonObject body) {
         JsonObject json;
-        try {
-            JsonObject body = context.getBodyAsJson();
-            Integer tenantId = body.getInteger("t_id");
-            Integer flatId = body.getInteger("f_id");
-//            String startParam = body.getString("start");
-//            LocalDateTime start = LocalDateTime.parse(startParam, DATE_TIME_FORMATTER);
-            Result result = flatViewService.cancel(flatId, getDateTime(body), tenantId);
-            json = new JsonObject().put("result", result);
-            context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
-        } catch (Exception e) {
-            log.error("Request error", e);
-            json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
-            context.response().setStatusCode(422).end(json.encode());
-        }
+        Integer tenantId = body.getInteger("t_id");
+        Integer flatId = body.getInteger("f_id");
+        return flatViewService.cancel(flatId, getDateTime(body), tenantId);
     }
 
     public void handleApprove(RoutingContext context) {
-        JsonObject json;
-        try {
-            JsonObject body = context.getBodyAsJson();
-            Integer tenantId = body.getInteger("t_id");
-            Integer flatId = body.getInteger("f_id");
-//            String startParam = body.getString("start");
-//            LocalDateTime start = LocalDateTime.parse(startParam, DATE_TIME_FORMATTER);
-//                LocalDateTime of()
-            Result result = flatViewService.approve(flatId, getDateTime(body), tenantId);
-            json = new JsonObject().put("result", result);
-            context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
-        } catch (Exception e) {
-            log.error("Request error", e);
-            json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
-            context.response().setStatusCode(422).end(json.encode());
-        }
+        processAndRespond(context, this::callApprove);
+    }
+
+    private Result callApprove(JsonObject body) {
+        Integer tenantId = body.getInteger("t_id");
+        Integer flatId = body.getInteger("f_id");
+        return flatViewService.approve(flatId, getDateTime(body), tenantId);
     }
 
     public void handleReject(RoutingContext context) {
-        JsonObject json;
-        try {
-            JsonObject body = context.getBodyAsJson();
-            Integer tenantId = body.getInteger("t_id");
-            Integer flatId = body.getInteger("f_id");
-//            String startParam = body.getString("start");
-//            LocalDateTime start = LocalDateTime.parse(startParam, DATE_TIME_FORMATTER);
-            Result result = flatViewService.reject(flatId, getDateTime(body), tenantId);
-            json = new JsonObject().put("result", result);
-            context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
-        } catch (Exception e) {
-            log.error("Request error", e);
-            json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
-            context.response().setStatusCode(422).end(json.encode());
-        }
+        processAndRespond(context, this::callReject);
+    }
+
+    private Result callReject(JsonObject body) {
+        Integer tenantId = body.getInteger("t_id");
+        Integer flatId = body.getInteger("f_id");
+        return flatViewService.reject(flatId, getDateTime(body), tenantId);
     }
 }

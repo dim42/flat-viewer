@@ -15,7 +15,4 @@ public interface NotificationService {
     void notifyNew(Integer flatId, ViewSlot viewSlot);
 
     void subscribeCurrent(Integer flatId, Integer tenantId);
-
-    void notifyRemoveCurrent(Integer flatId, ViewSlot viewSlot);
-
 }
