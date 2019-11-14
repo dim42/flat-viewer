@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 public interface NotificationService {
 
-    void notifyTenant(Integer tenantId, LocalDateTime startTime, SlotState state);
+    void subscribeCurrent(Integer flatId, Integer tenantId);
 
     void notifyCurrent(Integer flatId, ViewSlot viewSlot);
 
@@ -14,5 +14,5 @@ public interface NotificationService {
 
     void notifyNew(Integer flatId, ViewSlot viewSlot);
 
-    void subscribeCurrent(Integer flatId, Integer tenantId);
+    void notifyTenant(Integer tenantId, LocalDateTime startTime, SlotState state);
 }

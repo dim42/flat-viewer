@@ -7,6 +7,8 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 import static flat.viewer.Result.*;
 import static flat.viewer.SlotState.*;
@@ -21,11 +23,14 @@ public class FlatViewServiceTest {
     @Spy
     private final NotificationService notificationService = new NotificationServiceImpl();
     private FlatViewService flatViewService;
+    private Map<Integer, Integer> flatToCurrentTenant;
+    private Map<FlatViewSlot, ViewSlot> flatViewToNewTenant;
 
     @Before
     public void setUp() {
-//        flatViewService = new FlatViewService(notificationService, sharedData);
-        flatViewService = new FlatViewService(notificationService, null);
+        flatViewService = new FlatViewService(notificationService);
+        flatToCurrentTenant = new HashMap<>();
+        flatViewToNewTenant = new HashMap<>();
     }
 
     @Test
@@ -35,18 +40,18 @@ public class FlatViewServiceTest {
         Integer flatId = 45;
         LocalDateTime start = LocalDateTime.now().plusDays(5);
 
-        Result result = flatViewService.tryReserve(flatId, start, tenant2Id, null);
+        Result result = flatViewService.tryReserve(flatId, start, tenant2Id, flatViewToNewTenant);
 
         assertThat(result, equalTo(Ok));
         verify(notificationService, never()).notifyTenant(any(), any(), any());
 
-        flatViewService.cancel(flatId, start, tenant2Id, null);
-        flatViewService.rent(flatId, tenant1Id, null);
-        flatViewService.tryReserve(flatId, start, tenant2Id, null);
+        flatViewService.cancel(flatId, start, tenant2Id, flatViewToNewTenant);
+        flatViewService.rent(flatId, tenant1Id, flatToCurrentTenant);
+        flatViewService.tryReserve(flatId, start, tenant2Id, flatViewToNewTenant);
 
         verify(notificationService).notifyTenant(tenant1Id, start, RESERVING);
 
-        result = flatViewService.approve(flatId, start, tenant2Id, null, null);
+        result = flatViewService.approve(flatId, start, tenant2Id, flatToCurrentTenant, flatViewToNewTenant);
 
         assertThat(result, equalTo(NotCurrent));
         verify(notificationService).notifyTenant(any(), any(), any());
@@ -61,17 +66,17 @@ public class FlatViewServiceTest {
         LocalDateTime start = LocalDateTime.now().plusDays(5);
 
         Result result;
-        result = flatViewService.rent(flatId, tenant1Id, null);
+        result = flatViewService.rent(flatId, tenant1Id, flatToCurrentTenant);
         assertThat(result, equalTo(Ok));
-        result = flatViewService.tryReserve(flatId, start, tenant2Id, null);
+        result = flatViewService.tryReserve(flatId, start, tenant2Id, flatViewToNewTenant);
 
         assertThat(result, equalTo(Ok));
         verify(notificationService).notifyTenant(tenant1Id, start, RESERVING);
 
-        result = flatViewService.tryReserve(flatId, start, tenant3Id, null);
+        result = flatViewService.tryReserve(flatId, start, tenant3Id, flatViewToNewTenant);
         assertThat(result, equalTo(Occupied));
 
-        result = flatViewService.approve(flatId, start, tenant1Id, null, null);
+        result = flatViewService.approve(flatId, start, tenant1Id, flatToCurrentTenant, flatViewToNewTenant);
 
         assertThat(result, equalTo(Ok));
         verify(notificationService).notifyTenant(tenant2Id, start, APPROVED);
@@ -86,16 +91,16 @@ public class FlatViewServiceTest {
         LocalDateTime start = LocalDateTime.now().plusDays(5);
 
         Result result;
-        result = flatViewService.rent(flatId, tenant1Id, null);
+        result = flatViewService.rent(flatId, tenant1Id, flatToCurrentTenant);
         assertThat(result, equalTo(Ok));
-        flatViewService.tryReserve(flatId, start, tenant2Id, null);
+        flatViewService.tryReserve(flatId, start, tenant2Id, flatViewToNewTenant);
 
-        result = flatViewService.cancel(flatId, start, tenant2Id, null);
+        result = flatViewService.cancel(flatId, start, tenant2Id, flatViewToNewTenant);
 
         assertThat(result, equalTo(Ok));
         verify(notificationService).notifyTenant(tenant1Id, start, CANCELED);
 
-        result = flatViewService.tryReserve(flatId, start, tenant3Id, null);
+        result = flatViewService.tryReserve(flatId, start, tenant3Id, flatViewToNewTenant);
         assertThat(result, equalTo(Ok));
     }
 
@@ -107,15 +112,15 @@ public class FlatViewServiceTest {
         Integer flatId = 45;
         LocalDateTime start = LocalDateTime.now().plusDays(5);
         Result result;
-        flatViewService.rent(flatId, tenant1Id, null);
-        flatViewService.tryReserve(flatId, start, tenant2Id, null);
+        flatViewService.rent(flatId, tenant1Id, flatToCurrentTenant);
+        flatViewService.tryReserve(flatId, start, tenant2Id, flatViewToNewTenant);
         verify(notificationService).notifyTenant(tenant1Id, start, RESERVING);
-        result = flatViewService.reject(flatId, start, tenant1Id, null, null);
+        result = flatViewService.reject(flatId, start, tenant1Id, flatToCurrentTenant, flatViewToNewTenant);
 
         assertThat(result, equalTo(Ok));
         verify(notificationService).notifyTenant(tenant2Id, start, REJECTED);
 
-        result = flatViewService.tryReserve(flatId, start, tenant3Id, null);
+        result = flatViewService.tryReserve(flatId, start, tenant3Id, flatViewToNewTenant);
 
         assertThat(result, equalTo(Rejected));
         verify(notificationService, times(2)).notifyTenant(any(), any(), any());

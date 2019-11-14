@@ -3,27 +3,17 @@ package flat.viewer.web;
 import flat.viewer.FlatViewService;
 import flat.viewer.NotificationService;
 import flat.viewer.NotificationServiceImpl;
+import flat.viewer.TimeSlotsHelper;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
-import io.vertx.core.shareddata.SharedData;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
 import java.time.LocalTime;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
-import static java.time.temporal.ChronoUnit.MINUTES;
-
-//import io.vertx.rxjava.core.AbstractVerticle;
-//import io.vertx.rxjava.core.http.HttpServerRequest;
-//import io.vertx.rxjava.ext.web.Router;
-//import io.vertx.rxjava.ext.web.RoutingContext;
+import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_JSON;
 
 public class FlatViewController extends AbstractVerticle {
-
-    private static final AtomicLong seq = new AtomicLong();
 
     private static final String HOST = "localhost";
     private static final int PORT = 8080;
@@ -34,23 +24,17 @@ public class FlatViewController extends AbstractVerticle {
 
     @Override
     public void start() {
-//        AuctionRepository repository = new AuctionRepository(vertx.sharedData());
-//        FVValidator validator = new FVValidator(repository);
-        SharedData sharedData = vertx.sharedData();
         NotificationService notificationService = new NotificationServiceImpl();
-        FlatViewService flatViewService = new FlatViewService(notificationService, sharedData);
-        //        FVValidator validator = new FVValidator();
-//        AuctionHandler handler = new AuctionHandler(repository, validator);
+        FlatViewService flatViewService = new FlatViewService(notificationService);
         LocalTime start = LocalTime.of(10, 0);
         LocalTime end = LocalTime.of(20, 0);
         int duration = 20;
-//        FlatViewHandler handler = new FlatViewHandler(flatViewService, initTimeSlots(start, end, duration));
-        FlatViewHandler handler = new FlatViewHandler(flatViewService, initTimeSlots(start, end, duration),sharedData);
+        FlatViewHandler handler = new FlatViewHandler(flatViewService, TimeSlotsHelper.initTimeSlots(start, end, duration), vertx.sharedData());
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-        router.route().consumes(APPLICATION_JSON);
-        router.route().produces(APPLICATION_JSON);
+        router.route().consumes(APPLICATION_JSON.toString());
+        router.route().produces(APPLICATION_JSON.toString());
 
         router.post("/rent").handler(handler::handleRent);
         router.post("/reserve").handler(handler::handleReserve);
@@ -59,90 +43,5 @@ public class FlatViewController extends AbstractVerticle {
         router.post("/reject").handler(handler::handleReject);
 
         vertx.createHttpServer().requestHandler(router).listen(PORT, HOST);
-
-
-//        SharedData sharedData = vertx.sharedData();
-
-//        sharedData.getLockWithTimeout("mylock", 10000, lockRes -> {
-//            if (lockRes.succeeded()) {
-//                // Got the lock!
-//                Lock lock = lockRes.result();
-//
-//                LocalMap<String, String> mymap2 = sharedData.getLocalMap("mymap2");
-//
-//////                LocalMap<String, String> map1 = 
-////                sharedData.<String, String>getClusterWideMap("mymap1", res2 -> {
-////                    if (res2.succeeded()) {
-////                        AsyncMap<String, String> map = res2.result();
-////                    } else {
-////                        // Something went wrong!
-////                    }
-////                });
-//
-//            } else {
-//                // Failed to get lock
-////                future.fail(lockRes.cause());
-//                // log
-//            }
-//        });
-//
-//        CompositeFutureImpl future = null;
-//        sharedData.getLock("RECORDS_LOCK_NAME", lockRes -> {
-//            if (lockRes.succeeded()) {
-//                Lock asyncLock = lockRes.result();
-//
-//                sharedData.<String, String>getClusterWideMap("RECORDS_MAP_NAME", mapRes -> {
-//                    if (mapRes.succeeded()) {
-//                        AsyncMap<String, String> clusterRecords = mapRes.result();
-//                        future.complete();
-//                    } else {
-//                        future.fail(mapRes.cause());
-//                    }
-//
-//                    asyncLock.release();
-//                });
-//            } else {
-//                future.fail(lockRes.cause());
-//            }
-//        });
-
-
-
-//        sharedData.getLock("RECORDS_LOCK_NAME", lockRes -> {
-//            if (lockRes.succeeded()) {
-//                Lock asyncLock = lockRes.result();
-//
-////                clusterRecords.get(id, getRes -> {
-//                lockRes.get(id, getRes -> {
-//                    if (getRes.succeeded()) {
-//                        String record = getRes.result();
-//                        future.complete(new JsonObject(record));
-//                    } else {
-//                        future.fail(getRes.cause());
-//                    }
-//                });
-//
-//                asyncLock.release();
-//            } else {
-//                future.fail(lockRes.cause());
-//            }
-//        });
-
-    }
-
-    private static Set<Map.Entry<LocalTime, LocalTime>> initTimeSlots(LocalTime start, LocalTime end, int duration) {
-        long minutes = MINUTES.between(start, end);
-        long count = minutes / duration;
-        List<Map.Entry<LocalTime, LocalTime>> timeSlots = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            int add = duration * i;
-            timeSlots.add(new AbstractMap.SimpleEntry<>(start.plus(add, MINUTES), start.plus(add + duration, MINUTES)));
-        }
-        long left = minutes % duration;
-        if (left > 0) {
-            Map.Entry<LocalTime, LocalTime> entry = timeSlots.get(timeSlots.size() - 1);
-            timeSlots.add(new AbstractMap.SimpleEntry<>(entry.getValue(), entry.getValue().plus(left, MINUTES)));
-        }
-        return new HashSet<>(timeSlots);
     }
 }
