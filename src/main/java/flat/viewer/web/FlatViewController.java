@@ -5,6 +5,7 @@ import flat.viewer.NotificationService;
 import flat.viewer.NotificationServiceImpl;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
+import io.vertx.core.shareddata.SharedData;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 
@@ -35,15 +36,16 @@ public class FlatViewController extends AbstractVerticle {
     public void start() {
 //        AuctionRepository repository = new AuctionRepository(vertx.sharedData());
 //        FVValidator validator = new FVValidator(repository);
-//        SharedData sharedData = vertx.sharedData();
+        SharedData sharedData = vertx.sharedData();
         NotificationService notificationService = new NotificationServiceImpl();
-        FlatViewService flatViewService = new FlatViewService(notificationService);
+        FlatViewService flatViewService = new FlatViewService(notificationService, sharedData);
         //        FVValidator validator = new FVValidator();
 //        AuctionHandler handler = new AuctionHandler(repository, validator);
         LocalTime start = LocalTime.of(10, 0);
         LocalTime end = LocalTime.of(20, 0);
         int duration = 20;
-        FlatViewHandler handler = new FlatViewHandler(flatViewService, initTimeSlots(start, end, duration));
+//        FlatViewHandler handler = new FlatViewHandler(flatViewService, initTimeSlots(start, end, duration));
+        FlatViewHandler handler = new FlatViewHandler(flatViewService, initTimeSlots(start, end, duration),sharedData);
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
@@ -60,22 +62,69 @@ public class FlatViewController extends AbstractVerticle {
 
 
 //        SharedData sharedData = vertx.sharedData();
-//
-//        sharedData.getLockWithTimeout("mylock", 10000, res -> {
-//            if (res.succeeded()) {
+
+//        sharedData.getLockWithTimeout("mylock", 10000, lockRes -> {
+//            if (lockRes.succeeded()) {
 //                // Got the lock!
-//                Lock lock = res.result();
+//                Lock lock = lockRes.result();
 //
-//                LocalMap<String, String> map1 = sharedData.getClusterWideMap("mymap1", res2 -> {
-//                    if (res2.succeeded()) {
-//                        AsyncMap<String, String> map = res2.result();
-//                    } else {
-//                        // Something went wrong!
-//                    }
-//                });
+//                LocalMap<String, String> mymap2 = sharedData.getLocalMap("mymap2");
+//
+//////                LocalMap<String, String> map1 = 
+////                sharedData.<String, String>getClusterWideMap("mymap1", res2 -> {
+////                    if (res2.succeeded()) {
+////                        AsyncMap<String, String> map = res2.result();
+////                    } else {
+////                        // Something went wrong!
+////                    }
+////                });
 //
 //            } else {
 //                // Failed to get lock
+////                future.fail(lockRes.cause());
+//                // log
+//            }
+//        });
+//
+//        CompositeFutureImpl future = null;
+//        sharedData.getLock("RECORDS_LOCK_NAME", lockRes -> {
+//            if (lockRes.succeeded()) {
+//                Lock asyncLock = lockRes.result();
+//
+//                sharedData.<String, String>getClusterWideMap("RECORDS_MAP_NAME", mapRes -> {
+//                    if (mapRes.succeeded()) {
+//                        AsyncMap<String, String> clusterRecords = mapRes.result();
+//                        future.complete();
+//                    } else {
+//                        future.fail(mapRes.cause());
+//                    }
+//
+//                    asyncLock.release();
+//                });
+//            } else {
+//                future.fail(lockRes.cause());
+//            }
+//        });
+
+
+
+//        sharedData.getLock("RECORDS_LOCK_NAME", lockRes -> {
+//            if (lockRes.succeeded()) {
+//                Lock asyncLock = lockRes.result();
+//
+////                clusterRecords.get(id, getRes -> {
+//                lockRes.get(id, getRes -> {
+//                    if (getRes.succeeded()) {
+//                        String record = getRes.result();
+//                        future.complete(new JsonObject(record));
+//                    } else {
+//                        future.fail(getRes.cause());
+//                    }
+//                });
+//
+//                asyncLock.release();
+//            } else {
+//                future.fail(lockRes.cause());
 //            }
 //        });
 

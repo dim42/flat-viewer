@@ -1,9 +1,11 @@
 package flat.viewer;
 
+import io.vertx.core.shareddata.Shareable;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-public class ViewSlot {
+public class ViewSlot implements Shareable {
     private final LocalDateTime startTime;
     private final Integer newTenantId;
     private SlotState state;

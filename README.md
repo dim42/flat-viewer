@@ -1,6 +1,6 @@
 # flat-viewer
 
-Simple flat viewing scheduler.
+Simple flat viewing scheduler based on Vert.x.
 
 ## Requirements
 

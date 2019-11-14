@@ -61,6 +61,7 @@ public class IntegrationTest {
                 .body(format("{\"t_id\":11, \"f_id\":45, \"date\":\"%s\", \"time\":\"12:20\", \"duration\":20}", start)).contentType(JSON).accept(JSON)
                 .post("/approve")
                 .then().assertThat().body(equalTo("{\"result\":\"Ok\"}"));
+//        if(true)return;
 
         given()
                 .body(format("{\"t_id\":21, \"f_id\":45,\"date\":\"%s\", \"time\":\"12:20\", \"duration\":20}", start)).contentType(JSON).accept(JSON)
