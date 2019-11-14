@@ -1,5 +1,5 @@
-package flat.viewer;
+package flat.viewer
 
-public enum Result {
-    Error, Ok, Occupied, Rejected, TooLate, NotCurrent;
+enum class Result {
+    Error, Ok, Occupied, Rejected, TooLate, NotCurrent
 }

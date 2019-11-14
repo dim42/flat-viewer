@@ -1,25 +1,23 @@
-package flat.viewer;
+package flat.viewer
 
-import java.time.LocalTime;
-import java.util.*;
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
+import java.util.*
 
-import static java.time.temporal.ChronoUnit.MINUTES;
-
-public class TimeSlotsHelper {
-
-    public static Set<Map.Entry<LocalTime, LocalTime>> initTimeSlots(LocalTime start, LocalTime end, int duration) {
-        long minutes = MINUTES.between(start, end);
-        long count = minutes / duration;
-        List<Map.Entry<LocalTime, LocalTime>> timeSlots = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            int add = duration * i;
-            timeSlots.add(new AbstractMap.SimpleEntry<>(start.plus(add, MINUTES), start.plus(add + duration, MINUTES)));
+object TimeSlotsHelper {
+    fun initTimeSlots(start: LocalTime, end: LocalTime?, duration: Int): Set<Map.Entry<LocalTime, LocalTime>> {
+        val minutes = ChronoUnit.MINUTES.between(start, end)
+        val count = minutes / duration
+        val timeSlots: MutableList<Map.Entry<LocalTime, LocalTime>> = ArrayList()
+        for (i in 0 until count) {
+            val add = (duration * i).toInt()
+            timeSlots.add(AbstractMap.SimpleEntry(start.plus(add.toLong(), ChronoUnit.MINUTES), start.plus(add + duration.toLong(), ChronoUnit.MINUTES)))
         }
-        long left = minutes % duration;
+        val left = minutes % duration
         if (left > 0) {
-            Map.Entry<LocalTime, LocalTime> entry = timeSlots.get(timeSlots.size() - 1);
-            timeSlots.add(new AbstractMap.SimpleEntry<>(entry.getValue(), entry.getValue().plus(left, MINUTES)));
+            val entry = timeSlots[timeSlots.size - 1]
+            timeSlots.add(AbstractMap.SimpleEntry(entry.value, entry.value.plus(left, ChronoUnit.MINUTES)))
         }
-        return new HashSet<>(timeSlots);
+        return HashSet(timeSlots)
     }
 }

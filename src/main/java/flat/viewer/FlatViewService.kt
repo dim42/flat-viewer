@@ -1,103 +1,90 @@
-package flat.viewer;
+package flat.viewer
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
 
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Objects;
-
-import static flat.viewer.Result.*;
-import static flat.viewer.SlotState.*;
-
-public class FlatViewService {
-
-    private static final Logger log = LoggerFactory.getLogger(FlatViewService.class);
-
-    private static final int NOTICE_TIME = 24;
-
-    private final NotificationService notificationService;
-
-    public FlatViewService(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
-
-    public Result rent(Integer flatId, Integer tenantId, Map<Integer, Integer> flatToCurrentTenant) {
-        Integer prev = flatToCurrentTenant.putIfAbsent(flatId, tenantId);
+class FlatViewService(private val notificationService: NotificationService) {
+    fun rent(flatId: Int, tenantId: Int, flatToCurrentTenant: MutableMap<Int?, Int?>): Result {
+        val prev = flatToCurrentTenant.putIfAbsent(flatId, tenantId)
         if (prev == null) {
-            notificationService.subscribeCurrent(flatId, tenantId);
-            return Ok;
+            notificationService.subscribeCurrent(flatId, tenantId)
+            return Result.Ok
         }
-        return Occupied;
+        return Result.Occupied
     }
 
-    public Result tryReserve(Integer flatId, LocalDateTime start, Integer tenantId, Map<FlatViewSlot, ViewSlot> flatViewToNewTenant) {
-        final Result[] result = new Result[1];
-        flatViewToNewTenant.compute(new FlatViewSlot(flatId, start), (start_, viewSlot_) -> {
+    fun tryReserve(flatId: Int, start: LocalDateTime, tenantId: Int, flatViewToNewTenant: MutableMap<FlatViewSlot?, ViewSlot?>): Result? {
+        val result = arrayOfNulls<Result>(1)
+        flatViewToNewTenant.compute(FlatViewSlot(flatId, start)) { _: FlatViewSlot?, viewSlot_: ViewSlot? ->
             if (viewSlot_ == null) {
-                viewSlot_ = new ViewSlot(start, tenantId);
-                viewSlot_.setState(RESERVING);
-                notificationService.subscribeNew(flatId, viewSlot_);
-                notificationService.notifyCurrent(flatId, viewSlot_);
-                result[0] = Ok;
+                val viewSlot = ViewSlot(start, tenantId)
+                viewSlot.state = SlotState.RESERVING
+                notificationService.subscribeNew(flatId, viewSlot)
+                notificationService.notifyCurrent(flatId, viewSlot)
+                result[0] = Result.Ok
+                viewSlot
             } else {
-                if (viewSlot_.getState() == REJECTED) {
-                    result[0] = Rejected;
+                if (viewSlot_.state == SlotState.REJECTED) {
+                    result[0] = Result.Rejected
                 } else {
-                    result[0] = Occupied;
+                    result[0] = Result.Occupied
                 }
+                viewSlot_
             }
-            return viewSlot_;
-        });
-        return result[0];
+        }
+        return result[0]
     }
 
-    public Result cancel(Integer flatId, LocalDateTime start, Integer tenantId, Map<FlatViewSlot, ViewSlot> flatViewToNewTenant) {
-        flatViewToNewTenant.remove(new FlatViewSlot(flatId, start));
-        ViewSlot viewSlot = new ViewSlot(start, tenantId);
-        viewSlot.setState(CANCELED);
-        notificationService.unsubscribeNew(flatId, viewSlot);
-        notificationService.notifyCurrent(flatId, viewSlot);
-        return Ok;
+    fun cancel(flatId: Int, start: LocalDateTime, tenantId: Int, flatViewToNewTenant: MutableMap<FlatViewSlot?, ViewSlot?>): Result {
+        flatViewToNewTenant.remove(FlatViewSlot(flatId, start))
+        val viewSlot = ViewSlot(start, tenantId)
+        viewSlot.state = SlotState.CANCELED
+        notificationService.unsubscribeNew(flatId, viewSlot)
+        notificationService.notifyCurrent(flatId, viewSlot)
+        return Result.Ok
     }
 
-    public Result approve(Integer flatId, LocalDateTime start, Integer currentTenantId, Map<Integer, Integer> flatToCurrentTenant,
-                          Map<FlatViewSlot, ViewSlot> flatViewToNewTenant) {
-        if (LocalDateTime.now().isAfter(start.minusHours(NOTICE_TIME))) {
-            log.info("Slot time: {}", start);
-            return TooLate;
+    fun approve(flatId: Int, start: LocalDateTime, currentTenantId: Int, flatToCurrentTenant: Map<Int?, Int?>,
+                flatViewToNewTenant: MutableMap<FlatViewSlot?, ViewSlot?>): Result? {
+        if (LocalDateTime.now().isAfter(start.minusHours(NOTICE_TIME.toLong()))) {
+            log.info("Slot time: {}", start)
+            return Result.TooLate
         }
-        if (!Objects.equals(flatToCurrentTenant.get(flatId), currentTenantId)) {
-            log.info("Flat tenant: {}, current tenant: {}", flatToCurrentTenant.get(flatId), currentTenantId);
-            return NotCurrent;
+        if (flatToCurrentTenant[flatId] != currentTenantId) {
+            log.info("Flat tenant: {}, current tenant: {}", flatToCurrentTenant[flatId], currentTenantId)
+            return Result.NotCurrent
         }
-        final Result[] result = new Result[1];
-        flatViewToNewTenant.compute(new FlatViewSlot(flatId, start), (start_, viewSlot_) -> {
+        val result = arrayOfNulls<Result>(1)
+        flatViewToNewTenant.compute(FlatViewSlot(flatId, start)) { _: FlatViewSlot?, viewSlot_: ViewSlot? ->
             if (viewSlot_ == null) {
-                return null;
+                return@compute null
             }
-            viewSlot_.setState(APPROVED);
-            notificationService.notifyNew(flatId, viewSlot_);
-            result[0] = Ok;
-            return viewSlot_;
-        });
-        return result[0];
+            viewSlot_.state = SlotState.APPROVED
+            notificationService.notifyNew(flatId, viewSlot_)
+            result[0] = Result.Ok
+            viewSlot_
+        }
+        return result[0]
     }
 
-    public Result reject(Integer flatId, LocalDateTime start, Integer currentTenantId, Map<Integer, Integer> flatToCurrentTenant,
-                         Map<FlatViewSlot, ViewSlot> flatViewToNewTenant) {
-        if (!Objects.equals(flatToCurrentTenant.get(flatId), currentTenantId)) {
-            log.info("Flat tenant: {}, current tenant: {}", flatToCurrentTenant.get(flatId), currentTenantId);
-            return NotCurrent;
+    fun reject(flatId: Int, start: LocalDateTime, currentTenantId: Int?, flatToCurrentTenant: Map<Int?, Int?>,
+               flatViewToNewTenant: MutableMap<FlatViewSlot?, ViewSlot?>): Result {
+        if (flatToCurrentTenant[flatId] != currentTenantId) {
+            log.info("Flat tenant: {}, current tenant: {}", flatToCurrentTenant[flatId], currentTenantId)
+            return Result.NotCurrent
         }
-        flatViewToNewTenant.compute(new FlatViewSlot(flatId, start), (start_, viewSlot_) -> {
-            if (viewSlot_ == null) {
-                viewSlot_ = new ViewSlot(start, null);
-            }
-            viewSlot_.setState(REJECTED);
-            notificationService.notifyNew(flatId, viewSlot_);
-            return viewSlot_;
-        });
-        return Ok;
+        flatViewToNewTenant.compute(FlatViewSlot(flatId, start)) { _: FlatViewSlot?, viewSlot_: ViewSlot? ->
+            val viewSlot = viewSlot_ ?: ViewSlot(start, -1)
+            viewSlot.state = SlotState.REJECTED
+            notificationService.notifyNew(flatId, viewSlot)
+            viewSlot
+        }
+        return Result.Ok
     }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(FlatViewService::class.java)
+        private const val NOTICE_TIME = 24
+    }
+
 }

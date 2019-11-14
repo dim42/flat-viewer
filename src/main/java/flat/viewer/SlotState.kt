@@ -1,5 +1,5 @@
-package flat.viewer;
+package flat.viewer
 
-public enum SlotState {
-    RESERVING, CANCELED, APPROVED, REJECTED;
+enum class SlotState {
+    RESERVING, CANCELED, APPROVED, REJECTED
 }

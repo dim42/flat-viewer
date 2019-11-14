@@ -1,48 +1,39 @@
-package flat.viewer;
+package flat.viewer
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDateTime
+import java.util.*
 
-public class NotificationServiceImpl implements NotificationService {
-
-    private final Map<FlatViewSlot, Integer> flatViewToNewTenant = new HashMap<>();
-    private final Map<Integer, Integer> flatToCurrentTenant = new HashMap<>();
-
-    @Override
-    public void subscribeCurrent(Integer flatId, Integer tenantId) {
-        flatToCurrentTenant.put(flatId, tenantId);
+class NotificationServiceImpl : NotificationService {
+    private val flatViewToNewTenant: MutableMap<FlatViewSlot, Int> = HashMap()
+    private val flatToCurrentTenant: MutableMap<Int, Int> = HashMap()
+    override fun subscribeCurrent(flatId: Int, tenantId: Int) {
+        flatToCurrentTenant[flatId] = tenantId
     }
 
-    @Override
-    public void notifyCurrent(Integer flatId, ViewSlot viewSlot) {
-        Integer currentTenantId = flatToCurrentTenant.get(flatId);
+    override fun notifyCurrent(flatId: Int, viewSlot: ViewSlot) {
+        val currentTenantId = flatToCurrentTenant[flatId]
         if (currentTenantId != null) {
-            notifyTenant(currentTenantId, viewSlot.getStartTime(), viewSlot.getState());
+            notifyTenant(currentTenantId, viewSlot.startTime, viewSlot.state!!)
         }
     }
 
-    @Override
-    public void subscribeNew(Integer flatId, ViewSlot viewSlot) {
-        flatViewToNewTenant.put(new FlatViewSlot(flatId, viewSlot.getStartTime()), viewSlot.getNewTenantId());
+    override fun subscribeNew(flatId: Int, viewSlot: ViewSlot) {
+        flatViewToNewTenant[FlatViewSlot(flatId, viewSlot.startTime)] = viewSlot.newTenantId
     }
 
-    @Override
-    public void unsubscribeNew(Integer flatId, ViewSlot viewSlot) {
-        flatViewToNewTenant.remove(new FlatViewSlot(flatId, viewSlot.getStartTime()));
+    override fun unsubscribeNew(flatId: Int, viewSlot: ViewSlot) {
+        flatViewToNewTenant.remove(FlatViewSlot(flatId, viewSlot.startTime))
     }
 
-    @Override
-    public void notifyNew(Integer flatId, ViewSlot viewSlot) {
-        Integer newTenantId = flatViewToNewTenant.get(new FlatViewSlot(flatId, viewSlot.getStartTime()));
+    override fun notifyNew(flatId: Int, viewSlot: ViewSlot) {
+        val newTenantId = flatViewToNewTenant[FlatViewSlot(flatId, viewSlot.startTime)]
         if (newTenantId != null) {
-            notifyTenant(newTenantId, viewSlot.getStartTime(), viewSlot.getState());
-            unsubscribeNew(flatId, viewSlot);
+            notifyTenant(newTenantId, viewSlot.startTime, viewSlot.state!!)
+            unsubscribeNew(flatId, viewSlot)
         }
     }
 
-    @Override
-    public void notifyTenant(Integer tenantId, LocalDateTime startTime, SlotState state) {
+    override fun notifyTenant(tenantId: Int, startTime: LocalDateTime, state: SlotState) {
         // stub
     }
 }

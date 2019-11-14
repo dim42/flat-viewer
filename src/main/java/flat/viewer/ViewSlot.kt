@@ -1,46 +1,21 @@
-package flat.viewer;
+package flat.viewer
 
-import io.vertx.core.shareddata.Shareable;
+import io.vertx.core.shareddata.Shareable
+import java.time.LocalDateTime
+import java.util.*
 
-import java.time.LocalDateTime;
-import java.util.Objects;
+class ViewSlot(val startTime: LocalDateTime, val newTenantId: Int) : Shareable {
+    var state: SlotState? = null
 
-public class ViewSlot implements Shareable {
-    private final LocalDateTime startTime;
-    private final Integer newTenantId;
-    private SlotState state;
-
-    public ViewSlot(LocalDateTime start, Integer tenantId) {
-        this.startTime = start;
-        this.newTenantId = tenantId;
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || javaClass != other.javaClass) return false
+        val viewSlot = other as ViewSlot
+        return startTime == viewSlot.startTime
     }
 
-    public LocalDateTime getStartTime() {
-        return startTime;
+    override fun hashCode(): Int {
+        return Objects.hash(startTime)
     }
 
-    public Integer getNewTenantId() {
-        return newTenantId;
-    }
-
-    public void setState(SlotState rejected) {
-        this.state = rejected;
-    }
-
-    public SlotState getState() {
-        return state;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ViewSlot viewSlot = (ViewSlot) o;
-        return Objects.equals(startTime, viewSlot.startTime);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(startTime);
-    }
 }

@@ -14,7 +14,6 @@ import static flat.viewer.Result.*;
 import static flat.viewer.SlotState.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -43,7 +42,7 @@ public class FlatViewServiceTest {
         Result result = flatViewService.tryReserve(flatId, start, tenant2Id, flatViewToNewTenant);
 
         assertThat(result, equalTo(Ok));
-        verify(notificationService, never()).notifyTenant(any(), any(), any());
+        verify(notificationService, never()).notifyTenant(any(Integer.class), any(LocalDateTime.class), any(SlotState.class));
 
         flatViewService.cancel(flatId, start, tenant2Id, flatViewToNewTenant);
         flatViewService.rent(flatId, tenant1Id, flatToCurrentTenant);
@@ -54,7 +53,7 @@ public class FlatViewServiceTest {
         result = flatViewService.approve(flatId, start, tenant2Id, flatToCurrentTenant, flatViewToNewTenant);
 
         assertThat(result, equalTo(NotCurrent));
-        verify(notificationService).notifyTenant(any(), any(), any());
+        verify(notificationService).notifyTenant(any(Integer.class), any(LocalDateTime.class), any(SlotState.class));
     }
 
     @Test
@@ -123,6 +122,6 @@ public class FlatViewServiceTest {
         result = flatViewService.tryReserve(flatId, start, tenant3Id, flatViewToNewTenant);
 
         assertThat(result, equalTo(Rejected));
-        verify(notificationService, times(2)).notifyTenant(any(), any(), any());
+        verify(notificationService, times(2)).notifyTenant(any(Integer.class), any(LocalDateTime.class), any(SlotState.class));
     }
 }
