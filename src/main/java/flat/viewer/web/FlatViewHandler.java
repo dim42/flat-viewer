@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
@@ -23,6 +24,7 @@ import java.util.function.Function;
 import static io.netty.handler.codec.http.HttpHeaderValues.APPLICATION_JSON;
 import static io.vertx.core.http.HttpHeaders.CONTENT_TYPE;
 import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.util.List.of;
 
 public class FlatViewHandler {
     private static final Logger log = LoggerFactory.getLogger(FlatViewHandler.class);
@@ -50,26 +52,38 @@ public class FlatViewHandler {
     }
 
     private void processAndRespond(Function<CallData, Result> function, RoutingContext context) {
-        final Result[] result = new Result[]{Result.Error};
-        sharedData.getLockWithTimeout(FLAT_VIEW_TO_NEW_TENANT_LOCK, LOCK_TIMEOUT, lockRes -> {
+        callWithLocks(function, context, of(FLAT_VIEW_TO_NEW_TENANT_LOCK), 0);
+    }
+
+    private void callWithLocks(Function<CallData, Result> function, RoutingContext context, List<String> locks, int i) {
+        if (i >= locks.size()) {
+            applyAndRespond(function, context);
+            return;
+        }
+        int finalI = i + 1;
+        sharedData.getLockWithTimeout(locks.get(i), LOCK_TIMEOUT, lockRes -> {
             try {
-                try {
-                    if (lockRes.succeeded()) {
-                        result[0] = function.apply(new CallData(context.getBodyAsJson(), sharedData));
-                    } else {
-                        log.warn("Failed to get lock");
-                    }
-                } finally {
-                    lockRes.result().release();
+                if (lockRes.succeeded()) {
+                    callWithLocks(function, context, locks, finalI);
+                } else {
+                    log.warn("Failed to get lock");
                 }
-                JsonObject json = new JsonObject().put("result", result[0]);
-                context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
-            } catch (Exception e) {
-                log.error("Request error", e);
-                JsonObject json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
-                context.response().setStatusCode(422).end(json.encode());
+            } finally {
+                lockRes.result().release();
             }
         });
+    }
+
+    private void applyAndRespond(Function<CallData, Result> function, RoutingContext context) {
+        try {
+            Result result = function.apply(new CallData(context.getBodyAsJson(), sharedData));
+            JsonObject json = new JsonObject().put("result", result);
+            context.response().setChunked(true).putHeader(CONTENT_TYPE, APPLICATION_JSON).end(json.encode());
+        } catch (Exception e) {
+            log.error("Request error", e);
+            JsonObject json = new JsonObject().put("error", e + (e.getCause() != null ? ", cause:" + e.getCause() : ""));
+            context.response().setStatusCode(422).end(json.encode());
+        }
     }
 
     private Result callRent(CallData data) {
